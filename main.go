@@ -7,11 +7,17 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
+
+	asciistring "github.com/Com1Software/Go-ASCII-String-Package"
 )
 
 // ----------------------------------------------------------------
+// ------------------------- (c) 1992-2024 Com1 Software Development
+// ----------------------------------------------------------------
 func main() {
-	fmt.Println("Go Web Server")
+	fmt.Println("Map Utility")
 	fmt.Printf("Operating System : %s\n", runtime.GOOS)
 	xip := fmt.Sprintf("%s", GetOutboundIP())
 	port := "8080"
@@ -34,14 +40,32 @@ func main() {
 		})
 		//------------------------------------------------ About Page Handler
 		http.HandleFunc("/about", func(w http.ResponseWriter, r *http.Request) {
-			xdata := AboutPage()
+			xdata := AboutPage(xip)
 			fmt.Fprint(w, xdata)
 		})
-		//------------------------------------------------ Display Page Handler
-		http.HandleFunc("/display", func(w http.ResponseWriter, r *http.Request) {
-			xdata := DisplayPage()
+		//--------------------------------------------------
+		http.HandleFunc("/fieldstringdisplay", func(w http.ResponseWriter, r *http.Request) {
+			fieldinfo := r.FormValue("field")
+			xdata := FieldStringDisplay(fieldinfo, xip)
 			fmt.Fprint(w, xdata)
+
 		})
+
+		//--------------------------------------------------
+		http.HandleFunc("/mapvalidatereport", func(w http.ResponseWriter, r *http.Request) {
+			mapinfo := r.FormValue("map")
+			xdata := MapValidateReport(mapinfo, xip)
+			fmt.Fprint(w, xdata)
+
+		})
+
+		//--------------------------------------------------
+		http.HandleFunc("/mapvalidate", func(w http.ResponseWriter, r *http.Request) {
+			xdata := MapValidate(xip)
+			fmt.Fprint(w, xdata)
+
+		})
+
 		//------------------------------------------------- Static Handler Handler
 		fs := http.FileServer(http.Dir("static/"))
 		http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -83,12 +107,13 @@ func InitPage(xip string) string {
 	xdata = xdata + "<head>"
 	//------------------------------------------------------------------------
 	xdata = xdata + "<title>Go Web Server Start Page</title>"
-	xdata = xdata + "  <link REL='StyleSheet' TYPE='text/css' HREF='static/css/style.css'>"
 	//------------------------------------------------------------------------
+	xdata = DateTimeDisplay(xdata)
 	xdata = xdata + "</head>"
 	//------------------------------------------------------------------------
-	xdata = xdata + "<body>"
-	xdata = xdata + "<H1>Go Web Server.</H1>"
+	xdata = xdata + "<body onload='startTime()'>"
+	xdata = xdata + "<center>"
+	xdata = xdata + "<H1>Map Utility</H1>"
 	//---------
 	host, _ := os.Hostname()
 	addrs, _ := net.LookupIP(host)
@@ -97,25 +122,25 @@ func InitPage(xip string) string {
 			xxip = fmt.Sprintf("%s", ipv4)
 		}
 	}
+
+	xdata = xdata + "<div id='txtdt'></div>"
 	xdata = xdata + "<p> Host Port IP : " + xip
 	xdata = xdata + "<BR> Machine IP : " + xxip + "</p>"
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/about'> [ About ] </A>  "
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/playground'> [ PlayGround ] </A>  "
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/display'> [ Display ] </A>  "
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/test'> [ Testing ] </A>  "
-	xdata = xdata + "  <BR>  Static :"
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/static/test123.html'> [ Test123 ] </A>  "
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/static/index.html'> [ Index ] </A>  "
-	xdata = xdata + "  <A HREF='http://" + xip + ":8080/static/testdev.html'> [ TestDev ] </A>  "
-	xdata = xdata + "<BR><BR>Go Web Server...."
+
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080/about'> [ About ] </A> <BR><BR> "
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080/fieldstringdisplay'> [ Field String Display ] </A> <BR><BR> "
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080/mapvalidate'> [ Map Validate ] </A>  "
+
+	xdata = xdata + "<BR><BR>Map Utility"
 	//------------------------------------------------------------------------
+	xdata = xdata + "</center>"
 	xdata = xdata + " </body>"
 	xdata = xdata + " </html>"
 	return xdata
 }
 
 // ----------------------------------------------------------------
-func AboutPage() string {
+func AboutPage(xip string) string {
 	//---------------------------------------------------------------------------
 
 	//----------------------------------------------------------------------------
@@ -124,15 +149,15 @@ func AboutPage() string {
 	xdata = xdata + "<head>"
 	//------------------------------------------------------------------------
 	xdata = xdata + "<title>About Page</title>"
-	xdata = xdata + "  <link REL='StyleSheet' TYPE='text/css' HREF='static/css/style.css'>"
 	//------------------------------------------------------------------------
 	xdata = DateTimeDisplay(xdata)
+
 	xdata = xdata + "<style>"
 	xdata = xdata + "body {"
-	xdata = xdata + "    background-color: lightblue;"
+	xdata = xdata + "    background-color: white;"
 	xdata = xdata + "}"
 	xdata = xdata + "	h1 {"
-	xdata = xdata + "	color: white;"
+	xdata = xdata + "	color: black;"
 	xdata = xdata + "	text-align: center;"
 	xdata = xdata + "}"
 	xdata = xdata + "	p {"
@@ -142,16 +167,19 @@ func AboutPage() string {
 	xdata = xdata + "</style>"
 	xdata = xdata + "</head>"
 	//------------------------------------------------------------------------
-	xdata = xdata + "<body onload='startTime()'>"
-	xdata = xdata + "<p>Go Web Server</p>"
-	xdata = xdata + "<div id='txtdt'></div>"
-	//---------
-	xdata = xdata + "  <A HREF='https://github.com/Com1Software/Test-GoWebServer'> [ GoWebServer GitHub Repository ] </A>  "
-	xdata = xdata + "<BR>"
-	xdata = xdata + "Go Web Server"
-	//------------------------------------------------------------------------
 
-	//------------------------------------------------------------------------
+	xdata = xdata + "<body onload='startTime()'>"
+	xdata = xdata + "<center>"
+	xdata = xdata + "<p>Map Utility</p>"
+	xdata = xdata + "<div id='txtdt'></div>"
+	xdata = xdata + "<BR>"
+	xdata = xdata + "(c) 1992-2024 Com1 Software Development<BR><BR>"
+	xdata = xdata + "  <A HREF='http://com1software.com'> [Com1 Software Web Site ] </A><BR><BR>  "
+	xdata = xdata + "  <A HREF='https://github.com/Com1Software/Map-Utility'> [ Map Utility GitHub Repository ] </A> <BR><BR> "
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080'> [ Return to Start Page ] </A>  "
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "Map Utility"
+	xdata = xdata + "</center>"
 	xdata = xdata + " </body>"
 	xdata = xdata + " </html>"
 	return xdata
@@ -159,24 +187,22 @@ func AboutPage() string {
 }
 
 // ----------------------------------------------------------------
-func DisplayPage() string {
+func MapValidate(xip string) string {
 	//---------------------------------------------------------------------------
-
 	//----------------------------------------------------------------------------
 	xdata := "<!DOCTYPE html>"
 	xdata = xdata + "<html>"
 	xdata = xdata + "<head>"
 	//------------------------------------------------------------------------
-	xdata = xdata + "<title>Display Page</title>"
-	xdata = xdata + "  <link REL='StyleSheet' TYPE='text/css' HREF='static/css/style.css'>"
+	xdata = xdata + "<title>Map Validate</title>"
 	//------------------------------------------------------------------------
 	xdata = DateTimeDisplay(xdata)
 	xdata = xdata + "<style>"
 	xdata = xdata + "body {"
-	xdata = xdata + "    background-color: black;"
+	xdata = xdata + "    background-color: white;"
 	xdata = xdata + "}"
 	xdata = xdata + "	h1 {"
-	xdata = xdata + "	color: white;"
+	xdata = xdata + "	color: black;"
 	xdata = xdata + "	text-align: center;"
 	xdata = xdata + "}"
 	xdata = xdata + "	p1 {"
@@ -190,7 +216,7 @@ func DisplayPage() string {
 	xdata = xdata + "	font-size: 20px;"
 	xdata = xdata + "}"
 	xdata = xdata + "	div {"
-	xdata = xdata + "color: white;"
+	xdata = xdata + "color: black;"
 	xdata = xdata + "font-family: verdana;"
 	xdata = xdata + "	font-size: 20px;"
 	xdata = xdata + "	text-align: center;"
@@ -199,24 +225,308 @@ func DisplayPage() string {
 	xdata = xdata + "</head>"
 	//------------------------------------------------------------------------
 	xdata = xdata + "<body onload='startTime()'>"
-	xdata = xdata + "<H1>Display Page</H1>"
+	xdata = xdata + "<H1>Map Validate</H1>"
 	xdata = xdata + "<div id='txtdt'></div>"
 	//---------
 	xdata = xdata + "<center>"
-	xdata = xdata + "<p1>Go Web Server</p1>"
+	xdata = xdata + "<p1>Map Utility</p1>"
 	xdata = xdata + "<BR>"
-	xdata = xdata + "<p2>Go Web Server</p2>"
+	xdata = xdata + "<p2>Map Validate</p2>"
+	xdata = xdata + "<BR><BR>"
+
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080'> [ Return to Start Page ] </A>  "
+
+	xdata = xdata + "<BR><BR>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "<form action='/mapvalidatereport' method='post'>"
+	xdata = xdata + "<textarea id='map' name='map' rows='20' cols='150'></textarea>"
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "<input type='submit' value='Submit'/>"
+	xdata = xdata + "</form>"
+	//------------------------------------------------------------------------
 	xdata = xdata + "</center>"
-
-	//------------------------------------------------------------------------
-
-	//------------------------------------------------------------------------
 	xdata = xdata + " </body>"
 	xdata = xdata + " </html>"
 	return xdata
 
 }
 
+// ----------------------------------------------------------------
+func MapValidateReport(mapinfo string, xip string) string {
+	//---------------------------------------------------------------------------
+	//----------------------------------------------------------------------------
+	xdata := "<!DOCTYPE html>"
+	xdata = xdata + "<html>"
+	xdata = xdata + "<head>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "<title>Map Validation Report</title>"
+	//------------------------------------------------------------------------
+	xdata = DateTimeDisplay(xdata)
+	xdata = xdata + "<style>"
+	xdata = xdata + "body {"
+	xdata = xdata + "    background-color: white;"
+	xdata = xdata + "}"
+	xdata = xdata + "	h1 {"
+	xdata = xdata + "	color: black;"
+	xdata = xdata + "	text-align: center;"
+	xdata = xdata + "}"
+	xdata = xdata + "	p1 {"
+	xdata = xdata + "color: green;"
+	xdata = xdata + "font-family: verdana;"
+	xdata = xdata + "	font-size: 20px;"
+	xdata = xdata + "}"
+	xdata = xdata + "	p2 {"
+	xdata = xdata + "color: red;"
+	xdata = xdata + "font-family: verdana;"
+	xdata = xdata + "	font-size: 20px;"
+	xdata = xdata + "}"
+	xdata = xdata + "	div {"
+	xdata = xdata + "color: black;"
+	xdata = xdata + "font-family: verdana;"
+	xdata = xdata + "	font-size: 20px;"
+	xdata = xdata + "	text-align: center;"
+	xdata = xdata + "}"
+	xdata = xdata + "</style>"
+	xdata = xdata + "</head>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "<body onload='startTime()'>"
+	xdata = xdata + "<H1>Map Validation Report</H1>"
+	xdata = xdata + "<div id='txtdt'></div>"
+	//---------
+	xdata = xdata + "<center>"
+	xdata = xdata + "<p1>Map Utility</p1>"
+	xdata = xdata + "<BR>"
+	xdata = xdata + "<p2>Map Validate</p2>"
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080'> [ Return to Start Page ] </A>  "
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080/mapvalidate'> [ Return to Map Validate ] </A>  "
+	xdata = xdata + "<BR><BR>"
+
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + MapValidation(mapinfo, xip)
+	//------------------------------------------------------------------------
+	xdata = xdata + "</center>"
+	xdata = xdata + " </body>"
+	xdata = xdata + " </html>"
+	return xdata
+
+}
+
+// ----------------------------------------------------------------
+func MapValidation(mapinfo string, xip string) string {
+	xdata := ""
+	tdata := ""
+	lc := 0
+	chr := ""
+	ascval := 0
+	for x := 0; x < len(mapinfo); x++ {
+		chr = mapinfo[x : x+1]
+		ascval = asciistring.StringToASCII(chr)
+		switch {
+		case ascval == 13:
+			lc++
+		}
+	}
+	xdata = xdata + "The configuration contains " + strconv.Itoa(lc) + " lines.<BR>"
+	fc := 0
+	for x := 0; x < len(mapinfo); x++ {
+		chr = mapinfo[x : x+1]
+		ascval = asciistring.StringToASCII(chr)
+		if ascval == 13 {
+			tmp := strings.Split(strings.ToUpper(tdata), "=")
+			switch {
+			case tmp[0] == "X12TRANSACTIONTYPE":
+				xdata = xdata + "The X12 trasnaction type is an " + tmp[1] + " .<BR>"
+
+			case tmp[0] == "FIELD":
+				fc++
+			}
+			tdata = ""
+
+		} else {
+			if ascval != 10 {
+				tdata = tdata + chr
+
+			}
+
+		}
+
+	}
+	xdata = xdata + "The configuration contains " + strconv.Itoa(fc) + " fields.<BR>"
+
+	return xdata
+
+}
+
+// ----------------------------------------------------------------
+func FieldStringDisplay(fieldinfo string, xip string) string {
+	//---------------------------------------------------------------------------
+	msg := ""
+	flda := ""
+	fldb := ""
+	fldc := ""
+	fldd := ""
+	flde := ""
+	fldf := ""
+	fldg := ""
+	fldh := ""
+	fldi := ""
+	fldj := ""
+	fldk := ""
+	fldl := ""
+	fldm := ""
+	fldn := ""
+	fldo := ""
+	fldp := ""
+	fldq := ""
+	fldr := ""
+	flds := ""
+	fi := strings.TrimLeft(fieldinfo, " ")
+	if len(fi) > 6 {
+		if strings.ToLower(fi[0:6]) == "field=" {
+			tmp := strings.Split(fi[6:len(fi)], ",")
+			for x := 0; x < len(tmp); x++ {
+				switch {
+				case x == 0:
+					flda = tmp[x]
+				case x == 1:
+					fldb = tmp[x]
+				case x == 2:
+					fldc = tmp[x]
+				case x == 3:
+					fldd = tmp[x]
+				case x == 4:
+					flde = tmp[x]
+				case x == 5:
+					fldf = tmp[x]
+				case x == 6:
+					fldg = tmp[x]
+				case x == 7:
+					fldh = tmp[x]
+				case x == 8:
+					fldi = tmp[x]
+				case x == 9:
+					fldj = tmp[x]
+				case x == 10:
+					fldk = tmp[x]
+				case x == 11:
+					fldl = tmp[x]
+				case x == 12:
+					fldm = tmp[x]
+				case x == 13:
+					fldn = tmp[x]
+				case x == 14:
+					fldo = tmp[x]
+				case x == 15:
+					fldp = tmp[x]
+				case x == 16:
+					fldq = tmp[x]
+				case x == 17:
+					fldr = tmp[x]
+				case x == 18:
+					flds = tmp[x]
+
+				}
+
+			}
+
+			msg = fieldinfo + "<BR><BR>Successfully Loaded.<BR><BR>Enter Another Field Line Sring and Submit"
+		} else {
+			msg = "Invalid Format"
+		}
+	} else {
+		msg = "Enter a Field Line Sring and Submit"
+	}
+	//----------------------------------------------------------------------------
+	xdata := "<!DOCTYPE html>"
+	xdata = xdata + "<html>"
+	xdata = xdata + "<head>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "<title>Field String Display</title>"
+	//------------------------------------------------------------------------
+	xdata = DateTimeDisplay(xdata)
+	xdata = xdata + "<style>"
+	xdata = xdata + "body {"
+	xdata = xdata + "    background-color: white;"
+	xdata = xdata + "}"
+	xdata = xdata + "	h1 {"
+	xdata = xdata + "	color: black;"
+	xdata = xdata + "	text-align: center;"
+	xdata = xdata + "}"
+	xdata = xdata + "	p1 {"
+	xdata = xdata + "color: green;"
+	xdata = xdata + "font-family: verdana;"
+	xdata = xdata + "	font-size: 20px;"
+	xdata = xdata + "}"
+	xdata = xdata + "	p2 {"
+	xdata = xdata + "color: red;"
+	xdata = xdata + "font-family: verdana;"
+	xdata = xdata + "	font-size: 20px;"
+	xdata = xdata + "}"
+	xdata = xdata + "	div {"
+	xdata = xdata + "color: black;"
+	xdata = xdata + "font-family: verdana;"
+	xdata = xdata + "	font-size: 20px;"
+	xdata = xdata + "	text-align: center;"
+	xdata = xdata + "}"
+	xdata = xdata + "</style>"
+	xdata = xdata + "</head>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "<body onload='startTime()'>"
+	xdata = xdata + "<H1>Field String Display</H1>"
+	xdata = xdata + "<div id='txtdt'></div>"
+	//---------
+	xdata = xdata + "<center>"
+	xdata = xdata + "<p1>Map Utility</p1>"
+	xdata = xdata + "<BR>"
+	xdata = xdata + "<p2>Field String Display</p2>"
+	xdata = xdata + "<BR><BR>"
+
+	xdata = xdata + "  <A HREF='http://" + xip + ":8080'> [ Return to Start Page ] </A>  "
+
+	xdata = xdata + "<BR><BR>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "<form action='/fieldstringdisplay' method='post'>"
+	xdata = xdata + "Enter Field String: <input type='text' name='field' /><br/>"
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "<input type='submit' value='Submit'/>"
+	xdata = xdata + "</form>"
+
+	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "FIELD<BR>"
+	xdata = xdata + "Syntax  FIELD=a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s<BR><BR>"
+
+	xdata = xdata + "A - Field Name : " + flda + "<BR>"
+	xdata = xdata + "B - Field Width : " + fldb + "<BR>"
+	xdata = xdata + "C - Segment Type : " + fldc + "<BR>"
+	xdata = xdata + "D - Segment Qualifier : " + fldd + "<BR>"
+	xdata = xdata + "E - Qualifier Position : " + flde + "<BR>"
+	xdata = xdata + "F - Element Position : " + fldf + "<BR>"
+	xdata = xdata + "G - Sub Element Position : " + fldg + "<BR>"
+	xdata = xdata + "H - Conditional Field : " + fldh + "<BR>"
+	xdata = xdata + "I -Occurance : " + fldi + "<BR>"
+	xdata = xdata + "J - Level : " + fldj + "<BR>"
+	xdata = xdata + "K - Service Line Number : " + fldk + "<BR>"
+	xdata = xdata + "L - Field Description : " + fldl + "<BR>"
+	xdata = xdata + "M - Data Starting Position within the Field : " + fldm + "<BR>"
+	xdata = xdata + "N - Length of Data : " + fldn + "<BR>"
+	xdata = xdata + "O = Function : " + fldo + "<BR>"
+	xdata = xdata + "P - Previous Segment : " + fldp + "<BR>"
+	xdata = xdata + "Q - Previous Segment Qualifier : " + fldq + "<BR>"
+	xdata = xdata + "R - Previous Segment Qualofier Position : " + fldr + "<BR>"
+	xdata = xdata + "S - Toggle Off Field : " + flds + "<BR>"
+
+	xdata = xdata + "<BR><BR>" + msg + "<BR>"
+	//------------------------------------------------------------------------
+	xdata = xdata + "</center>"
+	xdata = xdata + " </body>"
+	xdata = xdata + " </html>"
+	return xdata
+
+}
+
+// ------------------------------------------------------------------------
 func DateTimeDisplay(xdata string) string {
 	//------------------------------------------------------------------------
 	xdata = xdata + "<script>"
@@ -296,7 +606,7 @@ func DateTimeDisplay(xdata string) string {
 	xdata = xdata + "       break;"
 	xdata = xdata + "}"
 	//  -------------------------------------------------------------------
-	xdata = xdata + "  document.getElementById('txtdt').innerHTML = ' - '+h + ':' + m + ':' + s+' '+ampm+' - '+day+', '+month+' '+dm+', '+yr;"
+	xdata = xdata + "  document.getElementById('txtdt').innerHTML = ' '+h + ':' + m + ':' + s+' '+ampm+' - '+day+', '+month+' '+dm+', '+yr;"
 	xdata = xdata + "  var t = setTimeout(startTime, 500);"
 	xdata = xdata + "}"
 	//----------
