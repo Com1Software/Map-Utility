@@ -12,6 +12,7 @@ import (
 
 	asciistring "github.com/Com1Software/Go-ASCII-String-Package"
 )
+
 // ----------------------------------------------------------------
 // ------------------------- (c) 1992-2024 Com1 Software Development
 // ----------------------------------------------------------------
@@ -53,6 +54,7 @@ func main() {
 		//--------------------------------------------------
 		http.HandleFunc("/mapvalidatereport", func(w http.ResponseWriter, r *http.Request) {
 			mapinfo := r.FormValue("map")
+			fmt.Println(mapinfo)
 			xdata := MapValidateReport(mapinfo, xip)
 			fmt.Fprint(w, xdata)
 
@@ -242,6 +244,13 @@ func MapValidate(xip string) string {
 	xdata = xdata + "<BR><BR>"
 	xdata = xdata + "<input type='submit' value='Submit'/>"
 	xdata = xdata + "</form>"
+	xdata = xdata + "<BR><BR>"
+
+	xdata = xdata + "<form action='/mapvalidatereport' method='post'>"
+	xdata = xdata + "<input id='map' name='map' type='file' value='File'/>"
+	xdata = xdata + "<input type='submit' value='Submit'/>"
+	xdata = xdata + "</form>"
+
 	//------------------------------------------------------------------------
 	xdata = xdata + "</center>"
 	xdata = xdata + " </body>"
