@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -13,13 +14,15 @@ import (
 	asciistring "github.com/Com1Software/Go-ASCII-String-Package"
 )
 
+var xip = fmt.Sprintf("%s", GetOutboundIP())
+
 // ----------------------------------------------------------------
 // ------------------------- (c) 1992-2024 Com1 Software Development
 // ----------------------------------------------------------------
 func main() {
 	fmt.Println("Map Utility")
 	fmt.Printf("Operating System : %s\n", runtime.GOOS)
-	xip := fmt.Sprintf("%s", GetOutboundIP())
+
 	port := "8080"
 	switch {
 	//-------------------------------------------------------------
@@ -59,6 +62,8 @@ func main() {
 			fmt.Fprint(w, xdata)
 
 		})
+
+		http.HandleFunc("/mapvalidatereportupload", uploadMapFile)
 
 		//--------------------------------------------------
 		http.HandleFunc("/mapvalidate", func(w http.ResponseWriter, r *http.Request) {
@@ -237,19 +242,21 @@ func MapValidate(xip string) string {
 
 	xdata = xdata + "  <A HREF='http://" + xip + ":8080'> [ Return to Start Page ] </A>  "
 
-	xdata = xdata + "<BR><BR>"
+	xdata = xdata + "<BR><BR><BR><BR>"
+	xdata = xdata + " Select a Map file to Upload and Validate <BR><BR>"
+	xdata = xdata + "<form  enctype='multipart/form-data' action='/mapvalidatereportupload' method='post'>"
+	xdata = xdata + "<input type='file' name='mapFile'/>"
+	xdata = xdata + "<input type='submit' value='Submit'/>"
+	xdata = xdata + "</form>"
+	xdata = xdata + "<BR><BR><BR>"
 	//------------------------------------------------------------------------
+	xdata = xdata + " Cut and Paste Map to Validate<BR><BR>"
 	xdata = xdata + "<form action='/mapvalidatereport' method='post'>"
 	xdata = xdata + "<textarea id='map' name='map' rows='20' cols='150'></textarea>"
 	xdata = xdata + "<BR><BR>"
 	xdata = xdata + "<input type='submit' value='Submit'/>"
 	xdata = xdata + "</form>"
 	xdata = xdata + "<BR><BR>"
-
-	xdata = xdata + "<form action='/mapvalidatereport' method='post'>"
-	xdata = xdata + "<input id='map' name='map' type='file' value='File'/>"
-	xdata = xdata + "<input type='submit' value='Submit'/>"
-	xdata = xdata + "</form>"
 
 	//------------------------------------------------------------------------
 	xdata = xdata + "</center>"
@@ -655,4 +662,22 @@ func GetOutboundIP() net.IP {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
 	return localAddr.IP
+}
+
+func uploadMapFile(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(10 << 20)
+	file, _, err := r.FormFile("mapFile")
+	if err != nil {
+		fmt.Println("Error Retrieving the File")
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println(err)
+	}
+	mapString := string(fileBytes[:])
+	xdata := MapValidateReport(mapString, xip)
+	fmt.Fprint(w, xdata)
 }
